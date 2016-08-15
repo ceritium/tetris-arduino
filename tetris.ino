@@ -2,6 +2,13 @@
 #include "LedControl.h"
 
 /*
+ * TODO:
+ * Mas figuras
+ * limites
+ * 
+ */
+
+/*
  Now we need a LedControl to work with.
  pin 12 is connected to the DataIn 
  pin 11 is connected to the CLK 
@@ -22,14 +29,23 @@ LedControl lc=LedControl(12,11,10,SCREENS);
 unsigned long delaytime=500;
 
 
-int world[ROWS][COLS] = {};
+int world[ROWS][COLS] = {
+{0,0,0,0,0,0,0,0},
+{0,0,0,0,0,0,0,0},
+{0,0,0,0,0,0,0,0},
+{0,0,0,0,0,0,0,0},
+{0,0,0,0,0,0,0,0},
+{0,0,0,0,0,0,0,0},
+{0,0,0,0,0,0,0,0},
+{0,0,0,0,0,0,0,0},
+  };
 int pieze[3][3] = {
   {1,1,1},
   {0,1,0},
+  {0,0,0},
   };
-int piezeX = CENTER;
+int piezeX = 0;
 int piezeY = 0;
-  
 int randNumber;
 int incomingByte = 0;   // for incoming serial data
 
@@ -58,7 +74,6 @@ void loop() {
 
   mergeMatrix(view, pieze, ROWS, COLS, PIEZED, PIEZED, piezeY, piezeX);
 
-
   render(view);
 
   if (collision(world, pieze, ROWS, COLS, PIEZED, PIEZED, piezeY, piezeX)){
@@ -68,10 +83,39 @@ void loop() {
   } else {
     piezeY++;
   }
-
+  
+  checkLine();
   actions();
 
   delay(delaytime);
+}
+
+void checkLine(){
+  for(int row=0;row<ROWS;row++) {
+    int count = 0;
+    for(int col=0;col<COLS;col++) {
+      count = count + world[row][col];
+      if (count >= COLS){
+        Serial.println("delete ROW");
+        deleteRow(row);        
+      }
+     }
+  } 
+}
+
+void deleteRow(int toDelete){
+  for(int row=ROWS;row>0;row--) {
+    if(row <= toDelete){
+      if(row == 0){
+        //world[row] = {};
+      } else {
+        for(int col=0;col<COLS;col++) {
+          Serial.println(world[row-1][col]);
+          world[row][col] = world[row-1][col];        
+        }
+      }
+    }
+  }
 }
 
 void actions(){
@@ -101,6 +145,19 @@ void rotatePieze(){
     for(int col=0;col<PIEZED;col++) {
       pieze[row][PIEZED-col-1] = newPieze[row][col];
     }
+  }
+  if(pieze[0][0] + pieze[1][0] + pieze[2][0] == 0){
+    
+    Serial.println("wow");
+    for(int row=0;row<PIEZED;row++) {
+      for(int col=1;col<PIEZED;col++) {
+        pieze[row][col-1] = pieze[row][col];
+        
+      }
+      pieze[row][2] = 0;
+    }
+
+
   }
 }
 
@@ -136,13 +193,14 @@ void mergeMatrix(int big[ROWS][COLS], int small[PIEZED][PIEZED], int bM, int bN,
   int mergeY = 0;
   for(int row=0;row<bM;row++) {
     for(int col=0;col<bN;col++) {
-      if( col>= pX && mergeX < PIEZED && row >= pY && mergeY < PIEZED ){
-        int val = small[mergeY][mergeX];
+      if(col>= pX && mergeX < PIEZED && row >= pY && mergeY < PIEZED ){
+        int val = small[mergeY][mergeX];        
+        int small = val;
         if (val == 0) {
           val = big[row][col];       
         }
         big[row][col] = val; 
-        if( col>= piezeX && mergeX < PIEZED){
+        if(col>= piezeX && mergeX < PIEZED){
           mergeX++;
         }
       }

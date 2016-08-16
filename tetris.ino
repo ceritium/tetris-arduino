@@ -6,6 +6,7 @@
  * Mas figuras
  * limites
  * 
+ * 
  */
 
 /*
@@ -38,13 +39,14 @@ int world[ROWS][COLS] = {
 {0,0,0,0,0,0,0,0},
 {0,0,0,0,0,0,0,0},
 {0,0,0,0,0,0,0,0},
+//{1,1,1,1,0,1,1,1},
   };
 int pieze[3][3] = {
   {1,1,1},
   {0,1,0},
   {0,0,0},
   };
-int piezeX = 0;
+int piezeX = CENTER;
 int piezeY = 0;
 int randNumber;
 int incomingByte = 0;   // for incoming serial data
@@ -104,13 +106,24 @@ void checkLine(){
 }
 
 void deleteRow(int toDelete){
+  int screen = (toDelete / SCREEN_SIZE);
+  int row = SCREEN_SIZE - (toDelete - (screen * SCREEN_SIZE)) - 1;
+  Serial.println(screen);
+  Serial.println(row);
+  for(int i=0;i<10;i++) {
+    lc.setColumn(screen, row, B11111111);
+    delay(10);
+    lc.setColumn(screen, row, B00000000);
+    delay(10);
+  }
+
+  
   for(int row=ROWS;row>0;row--) {
     if(row <= toDelete){
       if(row == 0){
         //world[row] = {};
       } else {
         for(int col=0;col<COLS;col++) {
-          Serial.println(world[row-1][col]);
           world[row][col] = world[row-1][col];        
         }
       }
@@ -147,8 +160,6 @@ void rotatePieze(){
     }
   }
   if(pieze[0][0] + pieze[1][0] + pieze[2][0] == 0){
-    
-    Serial.println("wow");
     for(int row=0;row<PIEZED;row++) {
       for(int col=1;col<PIEZED;col++) {
         pieze[row][col-1] = pieze[row][col];

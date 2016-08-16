@@ -3,8 +3,8 @@
 
 /*
  * TODO:
- * Mas figuras
  * limites
+ * realtime
  * 
  * 
  */
@@ -31,24 +31,43 @@ unsigned long delaytime=500;
 
 
 int world[ROWS][COLS] = {
-{0,0,0,0,0,0,0,0},
-{0,0,0,0,0,0,0,0},
-{0,0,0,0,0,0,0,0},
-{0,0,0,0,0,0,0,0},
-{0,0,0,0,0,0,0,0},
-{0,0,0,0,0,0,0,0},
-{0,0,0,0,0,0,0,0},
-{0,0,0,0,0,0,0,0},
+//{0,0,0,0,0,0,0,0},
+//{0,0,0,0,0,0,0,0},
+//{0,0,0,0,0,0,0,0},
+//{0,0,0,0,0,0,0,0},
+//{0,0,0,0,0,0,0,0},
+//{0,0,0,0,0,0,0,0},
+//{0,0,0,0,0,0,0,0},
+//{0,0,0,0,0,0,0,0},
 //{1,1,1,1,0,1,1,1},
   };
-int pieze[3][3] = {
-  {1,1,1},
-  {0,1,0},
-  {0,0,0},
-  };
+
+int piezes[4][3][3] = {
+  {
+    {1,0,0},
+    {1,1,0},
+    {1,0,0},
+  },
+  {
+    {1,1,0},
+    {1,1,0},
+    {0,0,0},
+  },
+  {
+    {1,0,0},
+    {1,0,0},
+    {1,1,0},
+  },
+  {
+    {1,0,0},
+    {1,1,0},
+    {0,1,0},
+  },
+};
+  
+int pieze[3][3] = {};
 int piezeX = CENTER;
 int piezeY = 0;
-int randNumber;
 int incomingByte = 0;   // for incoming serial data
 
  
@@ -62,15 +81,15 @@ void setup() {
     /*The MAX72XX is in power-saving mode on startup*/
     lc.shutdown(address,false);
     /* Set the brightness to a medium values */
-    lc.setIntensity(address,1);
+    lc.setIntensity(address,10);
     /* and clear the display */
     lc.clearDisplay(address);
   }
   Serial.println("starting....");
+  generatePieze();
 }
 
 void loop() { 
-  
   int view[ROWS][COLS] = {};
   Matrix.Copy((int*)world, ROWS, COLS,(int*)view);
 
@@ -82,6 +101,7 @@ void loop() {
     mergeMatrix(world, pieze, ROWS, COLS, PIEZED, PIEZED, piezeY, piezeX);
     piezeY = 0;
     piezeX = CENTER;
+    generatePieze();
   } else {
     piezeY++;
   }
@@ -92,13 +112,17 @@ void loop() {
   delay(delaytime);
 }
 
+void generatePieze(){
+  int randNumber = random(4);
+  Matrix.Copy((int*)piezes[randNumber], 3, 3,(int*)pieze);
+};
+
 void checkLine(){
   for(int row=0;row<ROWS;row++) {
     int count = 0;
     for(int col=0;col<COLS;col++) {
       count = count + world[row][col];
       if (count >= COLS){
-        Serial.println("delete ROW");
         deleteRow(row);        
       }
      }
@@ -167,8 +191,6 @@ void rotatePieze(){
       }
       pieze[row][2] = 0;
     }
-
-
   }
 }
 

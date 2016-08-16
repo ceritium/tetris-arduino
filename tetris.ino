@@ -3,10 +3,7 @@
 
 /*
  * TODO:  
- * limites
- * realtime
- * 
- * 
+ * - Gameover
  */
 
 /*
@@ -30,21 +27,15 @@ LedControl lc=LedControl(12,11,10,SCREENS);
 unsigned long delaytime=500;
 const long interval = 1000; 
 unsigned long previousMillis = 0;        // will store last time LED was updated
-
+bool gameOver = false;
 
 int world[ROWS][COLS] = {
-//{0,0,0,0,0,0,0,0},
-//{0,0,0,0,0,0,0,0},
-//{0,0,0,0,0,0,0,0},
-//{0,0,0,0,0,0,0,0},
-//{0,0,0,0,0,0,0,0},
-//{0,0,0,0,0,0,0,0},
-//{0,0,0,0,0,0,0,0},
-//{0,0,0,0,0,0,0,0},
-//{1,1,1,1,0,1,1,1},
+//{1,1,1,1,1,1,1,1},
+//{0,0,0,0,1,0,0,0},
+//{0,0,0,0,1,0,0,0},
   };
 
-int piezes[4][3][3] = {
+int piezes[4][PIEZED][PIEZED] = {
   {
     {1,0,0},
     {1,1,0},
@@ -64,10 +55,11 @@ int piezes[4][3][3] = {
     {1,0,0},
     {1,1,0},
     {0,1,0},
+
   },
 };
   
-int pieze[3][3] = {};
+int pieze[PIEZED][PIEZED] = {};
 int piezeX = CENTER;
 int piezeY = 0;
 int incomingByte = 0;   // for incoming serial data
@@ -101,6 +93,10 @@ void loop() {
 
     if (collision(world, pieze, ROWS, COLS, PIEZED, PIEZED, piezeY, piezeX)){
       mergeMatrix(world, pieze, ROWS, COLS, PIEZED, PIEZED, piezeY, piezeX);
+      Serial.println("collsision");
+      if(piezeY == 0){
+        gameOver = true;
+      }
       piezeY = 0;
       piezeX = CENTER;
       generatePieze();
@@ -110,17 +106,40 @@ void loop() {
   
     checkLine();
   }
+  
+  if (gameOver == true){
+    beginGameOver();  
+  } else {
   int view[ROWS][COLS] = {};
   Matrix.Copy((int*)world, ROWS, COLS,(int*)view);
 
   mergeMatrix(view, pieze, ROWS, COLS, PIEZED, PIEZED, piezeY, piezeX);
   render(view);
   actions();
+  }
+}
+
+void beginGameOver(){
+  Serial.println("gameover" );
+  for(int screen=0;screen<SCREENS;screen++){
+    for(int row=0;row<SCREEN_SIZE;row++) {
+      lc.setColumn(SCREENS-screen-1, row, B11111111);
+      delay(100);
+    }
+  }
+  int newWorld[ROWS][COLS] = {};
+   Matrix.Copy((int*)newWorld, ROWS, COLS,(int*)world);
+
+  piezeX = CENTER;
+  piezeY = -1;
+  generatePieze();
+  gameOver = false;
+  render(world);
 }
 
 void generatePieze(){
   int randNumber = random(4);
-  Matrix.Copy((int*)piezes[randNumber], 3, 3,(int*)pieze);
+  Matrix.Copy((int*)piezes[randNumber], PIEZED, PIEZED,(int*)pieze);
 };
 
 void checkLine(){
@@ -138,8 +157,6 @@ void checkLine(){
 void deleteRow(int toDelete){
   int screen = (toDelete / SCREEN_SIZE);
   int row = SCREEN_SIZE - (toDelete - (screen * SCREEN_SIZE)) - 1;
-  Serial.println(screen);
-  Serial.println(row);
   for(int i=0;i<10;i++) {
     lc.setColumn(screen, row, B11111111);
     delay(10);
@@ -147,7 +164,6 @@ void deleteRow(int toDelete){
     delay(10);
   }
 
-  
   for(int row=ROWS;row>0;row--) {
     if(row <= toDelete){
       if(row == 0){
@@ -170,36 +186,83 @@ void actions(){
     Serial.print("I received: ");
     Serial.println(incomingByte);
     if (incomingByte == 97){ // a
+      if (validPosition(pieze, piezeY, piezeX-1)){
         piezeX--;
+      } else {
+        Serial.println("invalid");
+        Serial.println(piezeX);
+      }
      }
-     if (incomingByte == 100){ //d
+     if (incomingByte == 100){ // d
+      if (validPosition(pieze, piezeY, piezeX+1)){
         piezeX++;
+      }
      }
-     if (incomingByte == 115){
+     if (incomingByte == 115){ // s
+      if (validPosition(pieze, piezeY+1, piezeX)){
         piezeY++;
+      }
      }
-     if (incomingByte == 119){
+     if (incomingByte == 119){ // w
         rotatePieze();
       }
   }
 }
 
 void rotatePieze(){
-  int newPieze[3][3] = {};
+  int newPieze[PIEZED][PIEZED] = {};
+  int tPieze[PIEZED][PIEZED] = {};
   Matrix.Transpose((int*)pieze,PIEZED, PIEZED, (int*)newPieze);
+  
   for(int row=0;row<PIEZED;row++) {
     for(int col=0;col<PIEZED;col++) {
-      pieze[row][PIEZED-col-1] = newPieze[row][col];
+      tPieze[row][PIEZED-col-1] = newPieze[row][col];
     }
   }
-  if(pieze[0][0] + pieze[1][0] + pieze[2][0] == 0){
+  if(tPieze[0][0] + tPieze[1][0] + tPieze[2][0] == 0){
     for(int row=0;row<PIEZED;row++) {
       for(int col=1;col<PIEZED;col++) {
-        pieze[row][col-1] = pieze[row][col];
+        tPieze[row][col-1] = tPieze[row][col];
         
       }
-      pieze[row][2] = 0;
+      tPieze[row][PIEZED-1] = 0;
     }
+  }
+
+  if (validPosition(tPieze, piezeY, piezeX)){
+    Matrix.Copy((int*)tPieze, PIEZED, PIEZED,(int*)pieze);
+  }
+}
+
+bool validPosition(int mPieze[PIEZED][PIEZED], int destY, int destX){
+  bool valid = true;
+  int x = 0;
+  int y = 0;
+
+  for(int row=destY;row<(PIEZED+destY);row++){
+    for(int col=destX;col<(PIEZED+destX);col++){
+      if (mPieze[y][x] == 1){
+        if(world[row][col] == 1){
+          Serial.println("a");
+          return false;
+        }
+        if(col>COLS-1){
+          Serial.println("b");
+          return false;
+        }
+        if(col < 0){
+          Serial.println("c");
+          return false;
+        }
+        if(row > ROWS-1){
+          Serial.println("d");
+          return false;
+        }
+      }
+      x++;
+    }
+    x = 0;
+    y++;
   }
 }
 

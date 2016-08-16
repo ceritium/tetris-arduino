@@ -2,7 +2,7 @@
 #include "LedControl.h"
 
 /*
- * TODO:
+ * TODO:  
  * limites
  * realtime
  * 
@@ -28,6 +28,8 @@ LedControl lc=LedControl(12,11,10,SCREENS);
 
 /* we always wait a bit between updates of the display */
 unsigned long delaytime=500;
+const long interval = 1000; 
+unsigned long previousMillis = 0;        // will store last time LED was updated
 
 
 int world[ROWS][COLS] = {
@@ -90,26 +92,30 @@ void setup() {
 }
 
 void loop() { 
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= interval) {
+    // save the last time you blinked the LED
+    previousMillis = currentMillis;
+
+
+    if (collision(world, pieze, ROWS, COLS, PIEZED, PIEZED, piezeY, piezeX)){
+      mergeMatrix(world, pieze, ROWS, COLS, PIEZED, PIEZED, piezeY, piezeX);
+      piezeY = 0;
+      piezeX = CENTER;
+      generatePieze();
+    } else {
+      piezeY++;
+    }
+  
+    checkLine();
+  }
   int view[ROWS][COLS] = {};
   Matrix.Copy((int*)world, ROWS, COLS,(int*)view);
 
   mergeMatrix(view, pieze, ROWS, COLS, PIEZED, PIEZED, piezeY, piezeX);
-
   render(view);
-
-  if (collision(world, pieze, ROWS, COLS, PIEZED, PIEZED, piezeY, piezeX)){
-    mergeMatrix(world, pieze, ROWS, COLS, PIEZED, PIEZED, piezeY, piezeX);
-    piezeY = 0;
-    piezeX = CENTER;
-    generatePieze();
-  } else {
-    piezeY++;
-  }
-  
-  checkLine();
   actions();
-
-  delay(delaytime);
 }
 
 void generatePieze(){
@@ -163,11 +169,14 @@ void actions(){
     // say what you got:
     Serial.print("I received: ");
     Serial.println(incomingByte);
-    if (incomingByte == 97){
+    if (incomingByte == 97){ // a
         piezeX--;
      }
-     if (incomingByte == 100){
+     if (incomingByte == 100){ //d
         piezeX++;
+     }
+     if (incomingByte == 115){
+        piezeY++;
      }
      if (incomingByte == 119){
         rotatePieze();

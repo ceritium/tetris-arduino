@@ -3,9 +3,8 @@
 
 /*
  * TODO:  
- * - 4x4 piezes |
- * - refactor rotate
  * - refactor render using cols or rows of LedControl
+ * - show points on gameover.
  */
 
 /*
@@ -20,7 +19,6 @@
 #define SCREEN_SIZE (8)
 #define COLS (8)
 #define ROWS (16)
-
 #define CENTER (3)
 
 LedControl lc=LedControl(12,11,10,SCREENS);
@@ -31,19 +29,21 @@ const long interval = 1000;
 unsigned long previousMillis = 0;        // will store last time LED was updated
 bool gameOver = false;
 
-int world[ROWS][COLS] = {
-//{1,1,1,1,1,1,1,1},
-//{0,0,0,0,1,0,0,0},
-//{0,0,0,0,1,0,0,0},
-  };
+int world[ROWS][COLS] = {};
 
-#define PIEZED (3)
-#define PIEZES (4)
+#define PIEZED (4)
+#define PIEZES (7)
 int piezes[PIEZES][PIEZED][PIEZED] = {
   {
-    {0,1,0},
-    {0,1,1},
-    {0,1,0},
+    {1,0,0},
+    {1,0,0},
+    {1,0,0},
+    {1,0,0},
+  },
+  {
+    {1,0,0},
+    {1,1,0},
+    {1,0,0},
   },
   {
     {1,1,0},
@@ -56,9 +56,19 @@ int piezes[PIEZES][PIEZED][PIEZED] = {
     {1,1,0},
   },
   {
+    {0,1,0},
+    {0,1,0},
+    {1,1,0},
+  },
+  {
     {1,0,0},
     {1,1,0},
     {0,1,0},
+  },
+  {
+    {0,1,0},
+    {1,1,0},
+    {1,0,0},
   },
 };
   
@@ -78,7 +88,7 @@ void setup() {
     /*The MAX72XX is in power-saving mode on startup*/
     lc.shutdown(address,false);
     /* Set the brightness to a medium values */
-    lc.setIntensity(address,10);
+    lc.setIntensity(address,1);
     /* and clear the display */
     lc.clearDisplay(address);
   }
@@ -90,13 +100,10 @@ void loop() {
   unsigned long currentMillis = millis();
 
   if (currentMillis - previousMillis >= interval) {
-    // save the last time you blinked the LED
     previousMillis = currentMillis;
-
 
     if (collision(world, pieze, ROWS, COLS, PIEZED, PIEZED, piezeY, piezeX)){
       mergeMatrix(world, pieze, ROWS, COLS, PIEZED, PIEZED, piezeY, piezeX);
-      Serial.println("collsision");
       if(piezeY == 0){
         gameOver = true;
       }
@@ -131,7 +138,7 @@ void beginGameOver(){
     }
   }
   int newWorld[ROWS][COLS] = {};
-   Matrix.Copy((int*)newWorld, ROWS, COLS,(int*)world);
+  Matrix.Copy((int*)newWorld, ROWS, COLS,(int*)world);
 
   piezeX = CENTER;
   piezeY = -1;
@@ -162,9 +169,9 @@ void deleteRow(int toDelete){
   int row = SCREEN_SIZE - (toDelete - (screen * SCREEN_SIZE)) - 1;
   for(int i=0;i<10;i++) {
     lc.setColumn(screen, row, B11111111);
-    delay(10);
+    delay(25);
     lc.setColumn(screen, row, B00000000);
-    delay(10);
+    delay(25);
   }
 
   for(int row=ROWS;row>0;row--) {
@@ -184,16 +191,9 @@ void actions(){
   if (Serial.available() > 0) {
     // read the incoming byte:
     incomingByte = Serial.read();
-
-    // say what you got:
-    Serial.print("I received: ");
-    Serial.println(incomingByte);
     if (incomingByte == 97){ // a
       if (validPosition(pieze, piezeY, piezeX-1)){
         piezeX--;
-      } else {
-        Serial.println("invalid");
-        Serial.println(piezeX);
       }
      }
      if (incomingByte == 100){ // d
@@ -216,21 +216,22 @@ void rotatePieze(){
   int newPieze[PIEZED][PIEZED] = {};
   int tPieze[PIEZED][PIEZED] = {};
   Matrix.Transpose((int*)pieze,PIEZED, PIEZED, (int*)newPieze);
-  
   for(int row=0;row<PIEZED;row++) {
     for(int col=0;col<PIEZED;col++) {
       tPieze[row][PIEZED-col-1] = newPieze[row][col];
     }
   }
-  if(tPieze[0][0] + tPieze[1][0] + tPieze[2][0] == 0){
-    for(int row=0;row<PIEZED;row++) {
-      for(int col=1;col<PIEZED;col++) {
-        tPieze[row][col-1] = tPieze[row][col];
-        
+  
+  for(int i=0; i<PIEZED; i++){
+    if(tPieze[0][0] + tPieze[1][0] + tPieze[2][0] == 0){
+      for(int row=0;row<PIEZED;row++) {
+        for(int col=1;col<PIEZED;col++) {
+          tPieze[row][col-1] = tPieze[row][col];    
+        }
+        tPieze[row][PIEZED-1] = 0;
       }
-      tPieze[row][PIEZED-1] = 0;
     }
-  }
+  } 
 
   if (validPosition(tPieze, piezeY, piezeX)){
     Matrix.Copy((int*)tPieze, PIEZED, PIEZED,(int*)pieze);
@@ -246,19 +247,15 @@ bool validPosition(int mPieze[PIEZED][PIEZED], int destY, int destX){
     for(int col=destX;col<(PIEZED+destX);col++){
       if (mPieze[y][x] == 1){
         if(world[row][col] == 1){
-          Serial.println("a");
           return false;
         }
         if(col>COLS-1){
-          Serial.println("b");
           return false;
         }
         if(col < 0){
-          Serial.println("c");
           return false;
         }
         if(row > ROWS-1){
-          Serial.println("d");
           return false;
         }
       }
@@ -301,7 +298,6 @@ void mergeMatrix(int big[ROWS][COLS], int small[PIEZED][PIEZED], int bM, int bN,
     for(int col=0;col<bN;col++) {
       if (col >= pX && col < pX + PIEZED  && row >= pY && row < pY + PIEZED){
         int val = small[row - pY][col - pX];
-        
         if (val == 0) {
           val = big[row][col];
         }

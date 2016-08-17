@@ -3,7 +3,9 @@
 
 /*
  * TODO:  
- * - Gameover
+ * - 4x4 piezes |
+ * - refactor rotate
+ * - refactor render using cols or rows of LedControl
  */
 
 /*
@@ -18,7 +20,7 @@
 #define SCREEN_SIZE (8)
 #define COLS (8)
 #define ROWS (16)
-#define PIEZED (3)
+
 #define CENTER (3)
 
 LedControl lc=LedControl(12,11,10,SCREENS);
@@ -35,11 +37,13 @@ int world[ROWS][COLS] = {
 //{0,0,0,0,1,0,0,0},
   };
 
-int piezes[4][PIEZED][PIEZED] = {
+#define PIEZED (3)
+#define PIEZES (4)
+int piezes[PIEZES][PIEZED][PIEZED] = {
   {
-    {1,0,0},
-    {1,1,0},
-    {1,0,0},
+    {0,1,0},
+    {0,1,1},
+    {0,1,0},
   },
   {
     {1,1,0},
@@ -55,7 +59,6 @@ int piezes[4][PIEZED][PIEZED] = {
     {1,0,0},
     {1,1,0},
     {0,1,0},
-
   },
 };
   
@@ -138,7 +141,7 @@ void beginGameOver(){
 }
 
 void generatePieze(){
-  int randNumber = random(4);
+  int randNumber = random(PIEZES);
   Matrix.Copy((int*)piezes[randNumber], PIEZED, PIEZED,(int*)pieze);
 };
 
@@ -294,27 +297,16 @@ bool collision(int big[ROWS][COLS], int small[PIEZED][PIEZED], int bM, int bN, i
 }
 
 void mergeMatrix(int big[ROWS][COLS], int small[PIEZED][PIEZED], int bM, int bN, int sM, int sN, int pY, int pX){
-  int mergeX = 0;
-  int mergeY = 0;
   for(int row=0;row<bM;row++) {
     for(int col=0;col<bN;col++) {
-      if(col>= pX && mergeX < PIEZED && row >= pY && mergeY < PIEZED ){
-        int val = small[mergeY][mergeX];        
-        int small = val;
+      if (col >= pX && col < pX + PIEZED  && row >= pY && row < pY + PIEZED){
+        int val = small[row - pY][col - pX];
+        
         if (val == 0) {
-          val = big[row][col];       
+          val = big[row][col];
         }
-        big[row][col] = val; 
-        if(col>= piezeX && mergeX < PIEZED){
-          mergeX++;
-        }
+        big[row][col] = val;
       }
-    }
-
-    mergeX = 0;
-    mergeX = 0;
-    if( row >= pY && mergeY < PIEZED){
-      mergeY++;
     }
   }
 }

@@ -31,6 +31,12 @@ bool gameOver = false;
 
 int world[ROWS][COLS] = {};
 
+const int pinL = 6;
+const int pinU = 5;
+const int pinR = 4;
+const int pinD = 7;
+
+
 #define PIEZED (4)
 #define PIEZES (7)
 int piezes[PIEZES][PIEZED][PIEZED] = {
@@ -94,6 +100,11 @@ void setup() {
   }
   Serial.println("starting....");
   generatePieze();
+
+  pinMode(pinR, INPUT);
+  pinMode(pinL, INPUT);
+  pinMode(pinU, INPUT);
+  pinMode(pinD, INPUT);
 }
 
 void loop() { 
@@ -188,6 +199,29 @@ void deleteRow(int toDelete){
 }
 
 void actions(){
+     if (digitalRead(pinR) == HIGH){
+      if (validPosition(pieze, piezeY, piezeX+1)){
+        piezeX++;
+      }
+     }
+
+     if (digitalRead(pinL) == HIGH){
+      if (validPosition(pieze, piezeY, piezeX-1)){
+        piezeX--;
+      }
+     }
+
+    if (digitalRead(pinD) == HIGH){
+      if (validPosition(pieze, piezeY+1, piezeX)){
+        piezeY++;
+      }
+     }
+
+
+     if (digitalRead(pinU) == HIGH){
+         rotatePieze();
+     }
+  
   if (Serial.available() > 0) {
     // read the incoming byte:
     incomingByte = Serial.read();
@@ -206,6 +240,8 @@ void actions(){
         piezeY++;
       }
      }
+     
+     
      if (incomingByte == 119){ // w
         rotatePieze();
       }

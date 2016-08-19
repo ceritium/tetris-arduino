@@ -114,8 +114,9 @@ void loop() {
     previousMillis = currentMillis;
 
     if (collision(world, pieze, ROWS, COLS, PIEZED, PIEZED, piezeY, piezeX)){
+      sound(800);
       mergeMatrix(world, pieze, ROWS, COLS, PIEZED, PIEZED, piezeY, piezeX);
-      if(piezeY == 0){
+      if(piezeY <= 0){
         gameOver = true;
       }
       piezeY = 0;
@@ -179,6 +180,7 @@ void deleteRow(int toDelete){
   int screen = (toDelete / SCREEN_SIZE);
   int row = SCREEN_SIZE - (toDelete - (screen * SCREEN_SIZE)) - 1;
   for(int i=0;i<10;i++) {
+    sound(3000);
     lc.setColumn(screen, row, B11111111);
     delay(25);
     lc.setColumn(screen, row, B00000000);
@@ -201,24 +203,33 @@ void deleteRow(int toDelete){
 void actions(){
      if (digitalRead(pinR) == HIGH){
       if (validPosition(pieze, piezeY, piezeX+1)){
+        moveSound();
         piezeX++;
+      } else {
+        noMoveSound();
       }
      }
 
      if (digitalRead(pinL) == HIGH){
       if (validPosition(pieze, piezeY, piezeX-1)){
+        moveSound();
         piezeX--;
+      } else {
+        noMoveSound();
       }
      }
 
     if (digitalRead(pinD) == HIGH){
       if (validPosition(pieze, piezeY+1, piezeX)){
+        moveSound();
         piezeY++;
+      } else {
+        noMoveSound();
       }
      }
 
-
      if (digitalRead(pinU) == HIGH){
+
          rotatePieze();
      }
   
@@ -248,6 +259,18 @@ void actions(){
   }
 }
 
+void moveSound(){
+  sound(800);
+}
+void noMoveSound(){
+  sound(200);
+}
+
+
+void sound(int frequency){
+  tone(8, frequency, 16);
+}
+
 void rotatePieze(){
   int newPieze[PIEZED][PIEZED] = {};
   int tPieze[PIEZED][PIEZED] = {};
@@ -270,7 +293,10 @@ void rotatePieze(){
   } 
 
   if (validPosition(tPieze, piezeY, piezeX)){
+    moveSound();
     Matrix.Copy((int*)tPieze, PIEZED, PIEZED,(int*)pieze);
+  } else {
+    noMoveSound();
   }
 }
 
